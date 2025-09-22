@@ -140,7 +140,7 @@ export default function CreateCheckin() {
             <button onClick={share} style={btn(t)}>Save</button>
             <button onClick={() => alert("Play preview not wired")} style={btn(t)}>Play</button>
             <button
-              onClick={() => chatRef.current?.send()}   // ← triggers AI draft via ChatPanel
+              onClick={() => chatRef.current?.send()}   // triggers AI draft via ChatPanel
               style={{
                 ...btn(t),
                 background: "#796758", color: "#fff", borderColor: "#796758", marginLeft: "auto",
