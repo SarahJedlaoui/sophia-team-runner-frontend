@@ -6,8 +6,8 @@ export default function VoiceOrb({ speaking }) {
       aria-hidden
       style={{
         width: 36, height: 36, borderRadius: 999,
-        background: "radial-gradient(60% 60% at 50% 50%, #6b7cff 0%, #2c2f3a 100%)",
-        boxShadow: speaking ? "0 0 24px rgba(107,124,255,.45)" : "none",
+        background: "radial-gradient(60% 60% at 50% 50%, #9b7741ff 0%, #633f19ff 100%)",
+        boxShadow: speaking ? "0 0 24px rgba(149, 124, 78, 0.45)" : "none",
         position: "relative",
         transform: speaking ? "scale(1.05)" : "scale(1)",
         transition: "transform 200ms ease",
@@ -20,7 +20,7 @@ export default function VoiceOrb({ speaking }) {
           content:"";
           position:absolute; inset:-6px;
           border-radius:999px;
-          border:2px solid rgba(107,124,255,.35);
+          border:2px solid rgba(102, 78, 31, 0.35);
           animation: pulse 1200ms ease-out infinite;
         }
         @keyframes pulse {

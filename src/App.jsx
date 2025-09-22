@@ -14,6 +14,8 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [speakOn, setSpeakOn] = useState(true);
   const [voice, setVoice] = useState("Joanna");
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const canStart = useMemo(() => !!name && !connected, [name, connected]);
 
   const logMessage = (msg) => setMessages((prev) => [...prev, msg]);
@@ -51,58 +53,179 @@ export default function App() {
     if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
   };
 
-  // expose app state to pages
   const ctx = { role, setRole, name, setName, connected, connect, canStart, socket, sendWS, speakOn, setSpeakOn, voice, setVoice, messages };
 
   const location = useLocation();
   useEffect(()=>{ window.scrollTo(0,0); }, [location.pathname]);
 
+  // responsive watcher
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // —— theme (matches the new page) ——
+  const theme = {
+    pageBg: "#F2EDE7",
+    panelBg: "#FFF9F0",
+    panelBorder: "#EFE6DA",
+    text: "#2B2A28",
+    textSubtle: "rgba(43,42,40,0.75)",
+    inputBg: "#FFFFFF",
+    inputBorder: "#EAE0D6",
+    navChip: "#F4ECE3",
+    primary: "#F0C9A6",
+    mainBg: "transparent",
+  };
+
+  const shell = {
+    background: theme.pageBg,
+    minHeight: "100vh",
+    fontFamily: "Inter, system-ui, Arial",
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "240px 1fr",
+  };
+
+  const asideWrap = {
+    background: theme.panelBg,
+    color: theme.text,
+    padding: 16,
+    borderRight: isMobile ? "none" : `1px solid ${theme.panelBorder}`,
+    borderBottom: isMobile ? `1px solid ${theme.panelBorder}` : "none",
+    position: "relative",
+    zIndex: 2,
+  };
+
+  const brand = { fontWeight: 800, letterSpacing: 0.4, marginBottom: isMobile ? 0 : 16 };
+
+  const navRow = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  };
+
+  const mobileToggle = {
+    display: isMobile ? "inline-flex" : "none",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: `1px solid ${theme.panelBorder}`,
+    background: theme.navChip,
+    color: theme.text,
+    cursor: "pointer",
+  };
+
+  const navGrid = {
+    display: isMobile ? (mobileOpen ? "grid" : "none") : "grid",
+    gap: 8,
+    marginTop: isMobile ? 12 : 8,
+  };
+
+  const linkStyle = {
+    color: theme.text,
+    textDecoration: "none",
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: theme.navChip,
+    border: `1px solid ${theme.panelBorder}`,
+    fontWeight: 600,
+  };
+
+  const sectionLabel = { marginTop: 18, fontSize: 12, color: theme.textSubtle };
+
+  const input = {
+    width: "90%",
+    marginTop: 4,
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: `1px solid ${theme.inputBorder}`,
+    background: theme.inputBg,
+    color: theme.text,
+  };
+
+  const btn = {
+    marginTop: 8,
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    background: theme.primary,
+    color: "#060606ff",
+    border: "none",
+    cursor: canStart ? "pointer" : "not-allowed",
+    opacity: canStart ? 1 : 0.7,
+    boxShadow: "0 6px 14px rgba(107,124,255,0.25)",
+    fontWeight: 700,
+  };
+
+  const speakRow = { marginTop: 12, display: "flex", gap: 8, alignItems: "center", color: theme.textSubtle };
+
+  const main = {
+    background: theme.pageBg,
+    color: theme.text,
+    padding: isMobile ? 16 : 24,
+  };
+
   return (
     <AppCtx.Provider value={ctx}>
-      <div style={{display:"grid", gridTemplateColumns:"220px 1fr", minHeight:"100vh", fontFamily:"Inter, system-ui, Arial"}}>
-        {/* sidebar */}
-        <aside style={{background:"#0c0d11", color:"#fff", padding:16}}>
-          <div style={{fontWeight:700, marginBottom:20}}>🌼 Sophia</div>
-          <nav style={{display:"grid", gap:8}}>
-            <Link to="/" style={linkStyle}>Home</Link>
-            <Link to="/create" style={linkStyle}>Create check-in</Link>
-          </nav>
-
-          <div style={{marginTop:24, fontSize:12, opacity:.8}}>Profile</div>
-          <div style={{marginTop:8}}>
-            <div style={{marginBottom:6}}>
-              <label>Name</label>
-              <input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Sarah" style={inp}/>
-            </div>
-            <div style={{marginBottom:6}}>
-              <label>Role</label>
-              <select value={role} onChange={e=>setRole(e.target.value)} style={inp}>
-                <option value="manager">Manager</option>
-                <option value="team">Team member</option>
-              </select>
-            </div>
-            <button disabled={!canStart} onClick={connect} style={btn}>
-              {connected? "Connected" : "Connect"}
+      <div style={shell}>
+        {/* Sidebar / Topbar */}
+        <aside style={asideWrap}>
+          {/* Top row (brand + mobile toggle) */}
+          <div style={navRow}>
+            <div style={brand}>Sophia</div>
+            <button
+              type="button"
+              onClick={() => setMobileOpen((v) => !v)}
+              style={mobileToggle}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-menu"
+            >
+              {mobileOpen ? "Close" : "Menu"}
             </button>
-
-            <div style={{marginTop:12, display:"flex", gap:8, alignItems:"center"}}>
-              <label style={{color:"#ccc"}}><input type="checkbox" checked={speakOn} onChange={e=>setSpeakOn(e.target.checked)} /> Sophia speaks</label>
-              <select value={voice} onChange={e=>setVoice(e.target.value)} style={{...inp, width:120}}>
-                <option>Joanna</option><option>Matthew</option><option>Olivia</option><option>Lupe</option><option>Arthur</option>
-              </select>
-            </div>
           </div>
+
+          {/* Nav */}
+          <nav id="mobile-menu" style={navGrid}>
+            <Link to="/" style={linkStyle} onClick={() => isMobile && setMobileOpen(false)}>Home</Link>
+            <Link to="/create" style={linkStyle} onClick={() => isMobile && setMobileOpen(false)}>Create check-in</Link>
+
+            <div style={sectionLabel}>Profile</div>
+
+            <div style={{ marginTop: 6 }}>
+              <div style={{ marginBottom: 8 }}>
+                <label>Name</label>
+                <input value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Sarah" style={input}/>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <label>Role</label>
+                <select value={role} onChange={e=>setRole(e.target.value)} style={input}>
+                  <option value="manager">Manager</option>
+                  <option value="team">Team member</option>
+                </select>
+              </div>
+
+              <button disabled={!canStart} onClick={connect} style={btn}>
+                {connected ? "Connected" : "Connect"}
+              </button>
+
+              <div style={speakRow}>
+                <label><input type="checkbox" checked={speakOn} onChange={e=>setSpeakOn(e.target.checked)} /> Sophia speaks</label>
+                <select value={voice} onChange={e=>setVoice(e.target.value)} style={{ ...input, width: 140 }}>
+                  <option>Joanna</option><option>Matthew</option><option>Olivia</option><option>Lupe</option><option>Arthur</option>
+                </select>
+              </div>
+            </div>
+          </nav>
         </aside>
 
-        {/* main */}
-        <main style={{background:"#0f1116", color:"#eaeaea", padding:24}}>
+        {/* Main */}
+        <main style={main}>
           <Outlet />
         </main>
       </div>
     </AppCtx.Provider>
   );
 }
-
-const linkStyle = { color:"#cfd3ff", textDecoration:"none", padding:"8px 10px", borderRadius:8, background:"#1a1d26" };
-const inp = { width:"90%", marginTop:4, padding:"8px 10px", borderRadius:8, border:"1px solid #333", background:"#10131a", color:"#fff" };
-const btn = { marginTop:6, width:"100%", padding:"8px 10px", borderRadius:8, background:"#6b7cff", color:"#fff", border:"none", cursor:"pointer" };

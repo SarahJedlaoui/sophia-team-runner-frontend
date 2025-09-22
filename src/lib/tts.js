@@ -1,46 +1,56 @@
 // src/lib/tts.js
-let currentAudio = null;
-let currentAbort = null;
+let inflight = {
+  abort: null,
+  url: null,
+};
 
 const TTS_URL = import.meta.env.VITE_TTS_URL || "http://localhost:8000/tts";
 
-export async function speakPolly(text, { voice = "Olivia", style = "conversational" } = {}) {
-  stopTTS(); // stop anything already playing
+/**
+ * Fetch Polly TTS audio (no autoplay).
+ * Returns { blob, url, stop } and you decide how to play it.
+ */
+export async function speakPolly(
+  text,
+  { voice = "Olivia", style = "conversational", neural = true } = {}
+) {
+  if (!text || !text.trim()) throw new Error("No text to speak");
 
-  currentAbort = new AbortController();
-  const body = new URLSearchParams({ text, voice, style });
+  // cancel any in-flight request
+  stopTTS();
 
+  inflight.abort = new AbortController();
   const res = await fetch(TTS_URL, {
     method: "POST",
-    body,
-    signal: currentAbort.signal,
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { "Content-Type": "application/json" },
+    signal: inflight.abort.signal,
+    body: JSON.stringify({ text, voice, style, neural }),
   });
 
-  if (!res.ok) throw new Error("TTS failed");
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    throw new Error(`TTS failed (${res.status}): ${err}`);
+  }
 
-  const blob = await res.blob(); // small mp3 arrives fast
+  const blob = await res.blob();
   const url = URL.createObjectURL(blob);
+  inflight.url = url;
 
-  currentAudio = new Audio(url);
-  currentAudio.onended = () => {
-    URL.revokeObjectURL(url);
-    currentAudio = null;
-    currentAbort = null;
+  // Return—do NOT create or play an <audio> tag here.
+  return {
+    blob,
+    url,
+    stop: () => stopTTS(),
   };
-  currentAudio.play().catch(() => {
-    // autoplay might fail; surface a hint
-    console.warn("Autoplay blocked. User action required.");
-  });
 }
 
+/** Cancel in-flight fetch and revoke last object URL. */
 export function stopTTS() {
-  if (currentAbort) {
-    try { currentAbort.abort(); } catch {}
-    currentAbort = null;
-  }
-  if (currentAudio) {
-    try { currentAudio.pause(); } catch {}
-    currentAudio = null;
+  try { inflight.abort?.abort(); } catch {}
+  inflight.abort = null;
+
+  if (inflight.url) {
+    try { URL.revokeObjectURL(inflight.url); } catch {}
+    inflight.url = null;
   }
 }

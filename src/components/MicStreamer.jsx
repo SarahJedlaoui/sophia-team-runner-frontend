@@ -104,7 +104,7 @@ const MicStreamer = forwardRef(function MicStreamer(
   // ---- start streaming
   async function start() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
-    setFinals([]); setPartial(""); setStatusBoth("recording");
+    setFinals([]); setPartial(""); setStatusBoth("ready");
 
     // 1) mic
     let stream;
@@ -141,9 +141,10 @@ const MicStreamer = forwardRef(function MicStreamer(
 
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "config", language_code: language }));
+      setStatusBoth("recording");
     };
     ws.onerror = () => setStatusBoth("error");
-    ws.onclose = () => { if (status !== "idle") setStatusBoth("idle"); };
+    ws.onclose = () => { setStatusBoth("idle"); };
 
     // 4) pipe PCM to WS
     node.port.onmessage = (event) => {
@@ -178,7 +179,12 @@ const MicStreamer = forwardRef(function MicStreamer(
   }
 
   // expose controls to parent
-  useImperativeHandle(ref, () => ({ start, stop: stopAll, status }));
+  useImperativeHandle(ref, () => ({
+    start,
+    stop: stopAll,
+    status,
+    isRecording: () => status === "recording",
+  }));
 
   // optional built-in UI (useful for debugging)
   if (hiddenUI) return null;
